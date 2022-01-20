@@ -1,0 +1,382 @@
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#>	
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>	
+PREFIX xml:	<http://www.w3.org/XML/1998/namespace>
+PREFIX xsd:	<http://www.w3.org/2001/XMLSchema#>
+PREFIX onto: <http://www.semanticweb.org/familiatd/ontologies/2021/11/cinema2#>
+
+
+1. Quais os títulos dos filmes que foram dirigidos pelo diretor $D$, em ordem lexicográfica? 
+
+## Modo simples de busca
+
+SELECT  ?TituloDoFilme
+
+WHERE   {
+         ?movie onto:directedBy onto:spike_jonze. 
+         ?movie onto:hasTitle ?TituloDoFilme.
+         }
+
+ORDER BY ?TituloDoFilme
+
+## Modo mais complexo com busca por string
+
+
+SELECT  ?TituloDoFilme
+
+WHERE   {
+         ?director a onto:Director. 
+         ?director foaf:firstName "Spike"^^xsd:string. 
+         ?director foaf:familyName "Jonze"^^xsd:string.
+         ?movie onto:directedBy ?director. 
+         ?movie onto:hasTitle ?TituloDoFilme.
+         }
+
+ORDER BY ?TituloDoFilme
+
+2. Quais os primeiros nomes e últimos nomes dos atores que participaram do filme de título F_t, em ordem lexicográfica de nome e sobrenome, com seus respectivos personagens? 
+
+#Exemplo 1
+
+SELECT  ?PrimeiroNome ?UltimoNome ?Personagem
+
+WHERE   {
+         ?movie onto:hasTitle "Interstellar"^^xsd:string. 
+         ?actor a onto:Actor. 
+         ?actor onto:appearsIn ?movie.
+         ?actor foaf:firstName ?PrimeiroNome.
+         ?actor foaf:familyName ?UltimoNome.
+         ?actor  onto:plays ?Personagem.
+        }
+        
+ORDER BY ?PrimeiroNome ?UltimoNome
+
+
+#Exemplo 2
+
+SELECT  ?PrimeiroNome ?UltimoNome ?Personagem
+
+WHERE   {
+         ?movie onto:hasTitle "The Godfather: Part III"^^xsd:string. 
+         ?actor a onto:Actor. 
+         ?actor onto:appearsIn ?movie.
+         ?actor foaf:firstName ?PrimeiroNome.
+         ?actor foaf:familyName ?UltimoNome.
+         ?actor  onto:plays ?Personagem.
+        }
+        
+ORDER BY ?PrimeiroNome ?UltimoNome
+
+3. Em quais filmes os atores X e Y atuaram juntos, com os respectivos diretores e anos de lançamento, do mais novo para o mais antigo? 
+
+## Modo simples de busca
+
+SELECT  ?Filme ?Diretor ?Ano 
+
+WHERE   {
+         onto:allen_leech onto:appearsIn ?Filme.         
+         onto:charles_dance  onto:appearsIn ?Filme.
+         ?Filme onto:directedBy ?Diretor.
+         ?Filme onto:wasReleasedIn ?Ano.
+         }
+
+ORDER BY ?ano
+
+## Modo mais complexo com busca por string
+
+SELECT  ?Filme (CONCAT(?directorFirstName, " ", ?directorFamilyName) AS ?Diretor)  ?Ano 
+
+WHERE   {
+         ?actorX foaf:firstName "Allen". 
+         ?actorX foaf:familyName "Leech".
+         ?actorX onto:appearsIn ?movie.
+         
+         ?actorY onto:appearsIn ?movie.
+         ?actorY foaf:firstName "Charles".
+         ?actorY foaf:familyName "Dance".
+
+         ?movie onto:directedBy ?director.
+         ?director foaf:firstName ?directorFirstName.
+         ?director foaf:familyName ?directorFamilyName.
+         ?movie onto:hasTitle ?Filme.
+         ?movie onto:wasReleasedIn ?Ano.
+         }
+
+ORDER BY ?Ano
+
+4. Quais filmes do diretor do filme $F$ possuem $X$ ou $Y$ como atores, com as respectivas durações em ordem crescente? 
+
+## Modo simples de busca
+
+SELECT  ?Filme ?Duracao
+
+WHERE   {
+         ?Filme onto:directedBy onto:ethan_coen.
+         {onto:jon_polito onto:appearsIn ?Filme} UNION {onto:bruce_campbell onto:appearsIn ?Filme}. 
+         ?Filme onto:hasDurationOf ?Duracao.
+        }
+
+ORDER BY ?Duracao
+
+
+## Modo mais complexo com busca por string
+
+SELECT  ?Filme ?Duracao
+
+WHERE   {
+         ?director foaf:firstName "Ethan"^^xsd:string.
+         ?director foaf:familyName "Coen"^^xsd:string.
+         ?movie onto:directedBy ?director.
+         
+         ?actorX foaf:firstName "Jon"^^xsd:string.
+         ?actorX foaf:familyName "Polito"^^xsd:string.
+         
+         ?actorY foaf:firstName "Bruce"^^xsd:string.
+         ?actorY foaf:familyName "Campbell"^^xsd:string.
+         
+         {?actorX onto:appearsIn ?movie} UNION {?actorY onto:appearsIn ?movie}. 
+         ?movie onto:hasTitle ?Filme.
+         ?movie onto:hasDurationOf ?Duracao.
+        }
+
+ORDER BY ?Duracao
+
+5. Quais pessoas atuaram em um filme e dirigiram algum filme (não necessariamente o mesmo filme, mas obrigatoriamente a mesma pessoa)? 
+
+## Modo simples de busca
+
+SELECT  ?Pessoa ?FilmeAt ?FilmeDir
+
+WHERE   {
+         FILTER EXISTS {?movie onto:directedBy ?Pessoa}.
+         FILTER EXISTS {?movie onto:featuring ?Pessoa}.
+         ?FilmeAt onto:directedBy ?Pessoa.
+         ?FilmeDir onto:featuring ?Pessoa.
+        }
+
+
+## Modo mais complexo com busca por string
+
+SELECT  (CONCAT(?pessoaFirstName, " ", ?pessoaFamilyName) AS ?Pessoa) ?FilmeAt ?FilmeDir
+
+WHERE   {
+         ?person foaf:firstName ?pessoaFirstName.
+         ?person foaf:familyName ?pessoaFamilyName.
+         FILTER EXISTS {?movie onto:directedBy ?person}.
+         FILTER EXISTS {?movie onto:featuring ?person}.
+         ?FilmeAt onto:directedBy ?person.
+         ?FilmeDir onto:featuring ?person.
+        }
+#Não precisa desse order by
+ORDER BY ?Pessoa
+
+6. Quais diretores dirigiram algum filme em um ano entre os anos $N1$ e $N2$ ,  em que os atores $X$ e $Y$ aparecem, do mais antigo para o mais novo? 
+
+## Modo simples de busca
+
+SELECT  ?Ano ?Diretor ?Filme
+
+WHERE   {
+         {onto:jon_polito onto:appearsIn ?Filme} UNION {onto:bruce_campbell onto:appearsIn ?Filme}. 
+         
+         ?Filme onto:wasReleasedIn ?Ano.
+         ?Filme onto:directedBy ?Diretor. 
+         
+         FILTER (?Ano > 1993).
+         FiLTER (?Ano < 2001).
+        }
+        
+ORDER BY ?Ano
+
+
+## Modo mais complexo com busca por string
+
+SELECT  ?Ano (CONCAT(?directorFirstName, " ", ?directorFamilyName) AS ?Diretor)  ?Filme
+
+WHERE   {
+         ?actorX foaf:firstName "Jon"^^xsd:string.
+         ?actorX foaf:familyName "Polito"^^xsd:string.
+         
+         ?actorY foaf:firstName "Bruce"^^xsd:string.
+         ?actorY foaf:familyName "Campbell"^^xsd:string.
+         
+         {?actorX onto:appearsIn ?movie} UNION {?actorY onto:appearsIn ?movie}. 
+         ?movie onto:hasTitle ?Filme.
+         ?movie onto:wasReleasedIn ?Ano.
+         ?movie onto:directedBy ?director. 
+         
+         FILTER (?Ano > 1993).
+         FiLTER (?Ano < 2001).
+         
+         ?director foaf:firstName ?directorFirstName.
+         ?director foaf:familyName ?directorFamilyName.
+        }
+        
+ORDER BY ?Ano
+
+
+7. Quais pares formados por uma uma atriz e um ator atuaram juntos em algum filme de duração entre $M1$ e $M2$? 
+
+## Modo simples de busca
+
+SELECT  ?Atriz ?Ator ?Filme ?Duracao
+
+WHERE   {
+         ?Atriz a onto:Actor.
+         ?Atriz foaf:gender "female"^^xsd:string.
+         ?Ator a onto:Actor.
+         ?Ator foaf:gender "male"^^xsd:string.
+
+         ?Filme onto:featuring ?Atriz.
+         ?Filme onto:featuring ?Ator.
+         ?Filme onto:hasDurationOf ?Duracao.
+         
+         FILTER (?Duracao > 180).
+         FiLTER (?Duracao < 210).       
+        }
+
+
+## Modo mais complexo com busca por string
+
+SELECT  (CONCAT(?actressFirstName, " ", ?actressFamilyName) as ?Atriz) (CONCAT(?actorFirstName, " ", ?actorFamilyName) as ?Ator) ?Filme ?Duracao
+
+WHERE   {
+         ?actress a onto:Actor.
+         ?actress foaf:gender "female"^^xsd:string.
+         ?actor a onto:Actor.
+         ?actor foaf:gender "male"^^xsd:string.
+         
+         ?Filme onto:featuring ?actress.
+         ?Filme onto:featuring ?actor.
+         ?Filme onto:hasDurationOf ?Duracao.
+         
+         FILTER (?Duracao > 180).
+         FiLTER (?Duracao < 210).
+         
+         ?actress foaf:firstName ?actressFirstName.
+         ?actress foaf:familyName ?actressFamilyName.
+         ?actor foaf:firstName ?actorFirstName.
+         ?actor foaf:familyName ?actorFamilyName.
+        }
+
+8. Qual o diretor que mais dirigiu filmes em que aparece o ator de primeiro nome $X_p$ e último nome $X_u$?
+
+SELECT  (CONCAT(?directorFirstName, " ", ?directorFamilyName) AS ?Diretor)
+
+WHERE {
+       {
+        SELECT ?director (COUNT(?director) as ?countDirector) ?directorFirstName ?directorFamilyName     
+        WHERE {
+               ?Ator a onto:Actor.
+               ?Ator foaf:firstName "John"^^xsd:string.
+               ?Ator foaf:familyName "McConnell"^^xsd:string.
+               ?movie onto:featuring ?Ator.
+               ?movie onto:directedBy ?director. 
+               ?director foaf:firstName ?directorFirstName.
+               ?director foaf:familyName ?directorFamilyName.
+              }
+        
+        GROUP BY ?director ?directorFirstName ?directorFamilyName
+        
+        ORDER BY DESC (?countDirector)
+
+        LIMIT 1
+       }
+      }
+ 
+
+9. Qual o filme mais antigo em que o ator $X$ atuou, em que ano foi lançado e qual era seu personagem? Havendo empate, devolver todos do mesmo ano. 
+
+## Modo simples de busca
+
+SELECT ?Filme ?Ano ?Personagem 
+
+WHERE {
+       {
+        SELECT ?Ano
+         
+         WHERE {
+                ?Filme onto:featuring onto:chris_cooper.
+                ?Filme onto:wasReleasedIn ?Ano. 
+               }
+          
+        ORDER BY (?Ano)
+          
+        LIMIT 1
+       }
+      ?Filme onto:featuring onto:chris_cooper.
+      ?Filme onto:wasReleasedIn ?Ano.
+      onto:chris_cooper onto:plays ?Personagem.
+      }
+
+## Modo mais complexo com busca por string
+
+SELECT ?Filme ?Ano ?Personagem 
+
+WHERE {
+       {
+        SELECT ?Ator ?Ano ?Filme
+         
+         WHERE {
+                ?Ator a onto:Actor.
+                ?Ator foaf:firstName "Chris"^^xsd:string.
+                ?Ator foaf:familyName "Cooper"^^xsd:string.
+                ?Ator onto:appearsIn ?Filme.
+                ?Filme onto:wasReleasedIn ?Ano. 
+               }
+          
+        ORDER BY (?Ano)
+          
+        LIMIT 1
+       }
+      ?Filme onto:featuring ?Ator.
+      ?Filme onto:wasReleasedIn ?Ano.
+      ?Ator onto:plays ?Personagem.
+      }
+
+10. Qual o filme mais longo dirigido por $D$, e qual a sua duração? Havendo empate, devolver todos da mesma duração.
+
+## Modo simples de busca
+
+SELECT ?Filme ?Duracao
+
+WHERE {
+       {
+        SELECT ?Duracao
+         
+         WHERE {
+                ?movie onto:directedBy onto:sofia_coppola.
+                ?movie onto:hasDurationOf ?Duracao. 
+               }
+          
+        ORDER BY DESC (?Duracao)
+          
+        LIMIT 1
+       }
+       ?Filme onto:directedBy onto:sofia_coppola.
+       ?Filme onto:hasDurationOf ?Duracao.
+      }
+
+## Modo mais complexo com busca por string
+
+SELECT ?Filme ?Duracao
+
+WHERE {
+       {
+        SELECT ?director ?Duracao
+         
+         WHERE {
+                ?director a onto:Director.
+                ?director foaf:firstName "Sofia"^^xsd:string.
+                ?director foaf:familyName "Coppola"^^xsd:string.
+                ?movie onto:directedBy ?director.
+                ?movie onto:hasDurationOf ?Duracao. 
+               }
+          
+        ORDER BY DESC (?Duracao)
+          
+        LIMIT 1
+       }
+       ?Filme onto:directedBy ?director.
+       ?Filme onto:hasDurationOf ?Duracao.
+      }
